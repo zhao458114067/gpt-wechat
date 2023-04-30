@@ -14,6 +14,11 @@ public interface Constants {
     String ENVIRONMENT_DEV = "dev";
 
     /**
+     * 收到不支持的消息类型
+     */
+    String MESSAGE_NOT_SUPPORT = "不支持";
+
+    /**
      * 公众号获取token链接
      */
     String ACCESS_TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
@@ -26,7 +31,12 @@ public interface Constants {
     /**
      * 公众号创建自定义菜单
      */
-    String CREATE_DESIGN_MENU = "https://api.weixin.qq.com/cgi-bin/menu/create?access_token=ACCESS_TOKEN";
+    String CREATE_DESIGN_MENU = "https://api.weixin.qq.com/cgi-bin/menu/create?access_token=";
+
+    /**
+     * 公众号发送模板消息url
+     */
+    String SEND_TEMPLATE_REQUEST_URL = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=";
 
     /**
      * 公众号token失效
@@ -59,4 +69,24 @@ public interface Constants {
      * 数据失效
      */
     Integer VALID_FALSE = 0;
+
+    /**
+     * 通过地理位置查询天气预警
+     */
+    String QUERY_WEATHER_WARNING_URL = "https://devapi.qweather.com/v7/warning/now";
+
+    /**
+     * 通过地理位置查询当天天气预报
+     */
+    String QUERY_WEATHER_PREDICTION_URL = "https://devapi.qweather.com/v7/weather/3d";
+
+    /**
+     * 通过地理位置查询城市
+     */
+    String QUERY_CITY_BY_LOCATION = "https://geoapi.qweather.com/v2/city/lookup";
+
+    /**
+     * 天气请求成功为200
+     */
+    String WEATHER_REQUEST_SUCCESS_CODE = "200";
 }

@@ -1,8 +1,12 @@
 package com.gpt.wechat.service;
 
+import com.gpt.wechat.entity.UserEntity;
 import com.gpt.wechat.service.bo.WeChatSendMsgBO;
+import com.gpt.wechat.service.bo.WeatherPredictionResponse;
+import com.gpt.wechat.service.bo.WeatherWarningResponse;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @author ZhaoXu
@@ -11,6 +15,7 @@ import java.io.IOException;
 public interface WeChatService {
     /**
      * 获取token
+     *
      * @return
      * @throws IOException
      */
@@ -18,6 +23,7 @@ public interface WeChatService {
 
     /**
      * 消息事件
+     *
      * @param signature
      * @param timestamp
      * @param nonce
@@ -29,12 +35,25 @@ public interface WeChatService {
      * @return
      */
     void eventArrived(String signature, String timestamp, String nonce, String echostr,
-                        String encryptType, String msgSignature, String openid, String receivedBody);
+                      String encryptType, String msgSignature, String openid, String receivedBody);
 
     /**
      * 发送消息
+     *
      * @param weChatSendMsgBO
      * @return
      */
-    boolean sendMessage(WeChatSendMsgBO weChatSendMsgBO);
+    String sendMessage(WeChatSendMsgBO weChatSendMsgBO);
+
+    /**
+     * 发送模板消息
+     *
+     * @param dailyWeather
+     * @param warning
+     * @param userEntity
+     * @return
+     */
+    String sendWeatherTemplateMessage(WeatherPredictionResponse.DailyWeather dailyWeather,
+                                      WeatherWarningResponse.WeatherWarning warning,
+                                      UserEntity userEntity);
 }

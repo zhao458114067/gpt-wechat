@@ -67,16 +67,16 @@ public class WechatXmlBO implements Serializable {
     private String event;
 
     /**
-     * 地理位置纬度
-     */
-    @XmlElement(name = "Latitude")
-    private String latitude;
-
-    /**
      * 地理位置经度
      */
     @XmlElement(name = "Longitude")
     private String longitude;
+
+    /**
+     * 地理位置纬度
+     */
+    @XmlElement(name = "Latitude")
+    private String latitude;
 
     /**
      * 地理位置精度

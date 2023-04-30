@@ -13,12 +13,14 @@ public enum WechatMsgTypeEnum {
     /**
      * text:回复文本消息，image：回复图片消息，voice：回复语音消息，video：回复视频消息，music：回复音乐消息，news：回复图文消息
      */
+    UNKNOWN_MESSAGE(0, "unknown"),
     TEXT_MESSAGE(1, "text"),
     IMAGE_MESSAGE(2, "image"),
     VOICE_MESSAGE(3, "voice"),
     VIDEO_MESSAGE(4, "video"),
     MUSIC_MESSAGE(5, "music"),
     NEWS_MESSAGE(6, "news"),
+    EVENT_MESSAGE(7, "event"),
 
     ;
 

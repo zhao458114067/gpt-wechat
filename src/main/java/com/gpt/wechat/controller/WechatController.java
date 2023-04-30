@@ -1,10 +1,12 @@
 package com.gpt.wechat.controller;
 
 import com.gpt.wechat.service.WeChatService;
+import com.gpt.wechat.service.bo.WeChatSendMsgBO;
 import com.zx.utils.util.MethodExecuteUtils;
 import com.zx.utils.util.ReflectUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.Resource;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -24,6 +27,9 @@ import java.util.concurrent.CompletableFuture;
 public class WechatController {
     @Autowired
     private WeChatService weChatService;
+
+    @Resource(name = "chatExecutor")
+    private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
     /**
      * 检测接口
@@ -49,7 +55,7 @@ public class WechatController {
      * @param receivedBody 消息体
      * @return
      */
-    @PostMapping(value = "/event")
+    @PostMapping("/event")
     public String event(@RequestParam(value = "signature", required = false) String signature,
                         @RequestParam(value = "timestamp", required = false) String timestamp,
                         @RequestParam(value = "nonce", required = false) String nonce,
@@ -60,7 +66,12 @@ public class WechatController {
                         @RequestBody(required = false) String receivedBody) {
         CompletableFuture.runAsync(() -> {
             weChatService.eventArrived(signature, timestamp, nonce, echostr, encryptType, msgSignature, openid, receivedBody);
-        });
+        }, threadPoolTaskExecutor);
         return "";
+    }
+
+    @PostMapping("/message/send")
+    public String sendMessage(@RequestBody WeChatSendMsgBO weChatSendMsgBO) {
+        return weChatService.sendMessage(weChatSendMsgBO);
     }
 }

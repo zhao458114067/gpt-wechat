@@ -1,6 +1,5 @@
 package com.gpt.wechat.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,11 +17,12 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * @author KuiChi
- * @date 2023/4/29 10:42
+ * @date 2023/4/30 21:54
  */
 @Entity
 @Table(name = "user_info")
@@ -31,8 +31,9 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class UserEntity {
+public class WeatherWarningEntity implements Serializable {
 
+    private static final long serialVersionUID = 7920339548887055755L;
     /**
      * id
      */
@@ -42,22 +43,42 @@ public class UserEntity {
     private Long id;
 
     /**
-     *  微信用户id
-     */
-    @Column(name = "user_id")
-    private String userId;
-
-    /**
-     * 经度
+     * 气象预警推送的id
      */
     @Column
-    private String longitude;
+    private String warningId;
 
     /**
-     * 地理位置纬度
+     * 推送机构
      */
     @Column
-    private String latitude;
+    private String sender;
+
+    /**
+     * 城市
+     */
+    @Column
+    private String city;
+
+    /**
+     * 发布时间
+     */
+    @Column
+    private String pubTime;
+
+    /**
+     * 标题
+     */
+    @Column
+    private String title;
+    @Column
+    private String typeName;
+
+    /**
+     * 详情
+     */
+    @Column
+    private String text;
 
     @CreatedDate
     @Column(name = "gmt_create", updatable = false)

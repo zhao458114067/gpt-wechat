@@ -26,6 +26,11 @@ spring:
       username: zhao458114067
       password: zhaoxujiayou
 
+# 需要使用天气预报功能申请 https://console.qweather.com/#/apps
+console:
+  weather:
+    key: e97ee44a76444axxxxxxxxxxxxxxxxxx
+
 we-chat:
   # 微信官方提供
   secret: 44eexxxxxxxxxxxxxxxxxxxxxsxxxxxxx
@@ -35,7 +40,9 @@ we-chat:
   encoding-aes-key: WI5SRgQ3aQNMKUQu6ApoN72kUr1Kkxxxxxxxxxxxxxx
   # 自己的素材
   media-id: -FyZZCSDIXaWxZizfx7DNgNe0O3-K_xxxxxxxxxxxxxxxxxxxxxsxxxxxxx
-  template-id: f1_WzmYW-HeK_dEBxxxxxxxxxxxxxxxxxxxxxsxxxxxxx
+  template:
+    prediction-id: rkj79W0ZhMSGznc4xxxxxxxxxxxxxxxxxxxxxsxxxxxxx
+    warning-id: IE4tMXqx4aquIu1xxxxxxxxxxxxxxxxxxxxxsxxxxxxx
 chat-gpt:
   api:
     # chatGpt官网申请的key
