@@ -44,8 +44,14 @@ public class UserEntity {
     /**
      *  微信用户id
      */
-    @Column(name = "user_id")
+    @Column
     private String userId;
+
+    /**
+     *  主题名
+     */
+    @Column
+    private Long topicId;
 
     /**
      * 经度

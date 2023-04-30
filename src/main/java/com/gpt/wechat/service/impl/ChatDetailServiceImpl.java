@@ -30,11 +30,12 @@ public class ChatDetailServiceImpl implements ChatDetailService {
     }
 
     @Override
-    public List<String> pageQueryChatDetailUserId(String userId, Integer page, Integer pageSize) {
+    public List<ChatDetailEntity> pageQueryChatDetailUserIdAndTopicId(String userId, Long topicId, Integer page, Integer pageSize) {
         PageRequest pageRequest = PageRequest.of(page - 1, pageSize);
-        Page<ChatDetailEntity> byPage = chatDetailRepository.pageQueryByUserIdMsgType(userId, WechatMsgTypeEnum.TEXT_MESSAGE.getCode(), pageRequest);
+        Page<ChatDetailEntity> byPage = chatDetailRepository.pageQueryChatDetailUserIdAndTopicId(userId, topicId, WechatMsgTypeEnum.TEXT_MESSAGE.getCode(), pageRequest);
+
         if (byPage != null) {
-            return byPage.stream().map(ChatDetailEntity::getQuestion).distinct().collect(Collectors.toList());
+            return byPage.getContent();
         }
         return Collections.emptyList();
     }

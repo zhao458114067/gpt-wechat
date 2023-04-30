@@ -1,6 +1,7 @@
 package com.gpt.wechat.service;
 
 import com.gpt.wechat.entity.UserEntity;
+import com.gpt.wechat.service.bo.CreateMenuBO;
 import com.gpt.wechat.service.bo.WeChatSendMsgBO;
 import com.gpt.wechat.service.bo.WeatherPredictionResponse;
 import com.gpt.wechat.service.bo.WeatherWarningResponse;
@@ -56,4 +57,11 @@ public interface WeChatService {
     String sendWeatherTemplateMessage(WeatherPredictionResponse.DailyWeather dailyWeather,
                                       WeatherWarningResponse.WeatherWarning warning,
                                       UserEntity userEntity);
+
+    /**
+     * 创建菜单
+     * @param createMenuBO
+     * @return
+     */
+    String createMenu(CreateMenuBO createMenuBO);
 }

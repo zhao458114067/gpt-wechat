@@ -1,5 +1,6 @@
 package com.gpt.wechat.service;
 
+import com.gpt.wechat.entity.UserEntity;
 import com.gpt.wechat.entity.WeatherWarningEntity;
 import com.gpt.wechat.service.bo.WeatherPredictionResponse;
 import com.gpt.wechat.service.bo.WeatherWarningResponse;
@@ -37,4 +38,11 @@ public interface WeatherService {
      * @param isPrediction
      */
     void pushWeatherTemplateMessage(boolean isPrediction);
+
+    /**
+     * 推送天气模板消息
+     * @param isPrediction
+     * @param userId
+     */
+    void pushWeatherTemplateMessageToUser(boolean isPrediction, UserEntity userId);
 }

@@ -1,9 +1,8 @@
 package com.gpt.wechat.controller;
 
+import com.gpt.wechat.service.bo.CreateMenuBO;
 import com.gpt.wechat.service.WeChatService;
 import com.gpt.wechat.service.bo.WeChatSendMsgBO;
-import com.zx.utils.util.MethodExecuteUtils;
-import com.zx.utils.util.ReflectUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -73,5 +72,10 @@ public class WechatController {
     @PostMapping("/message/send")
     public String sendMessage(@RequestBody WeChatSendMsgBO weChatSendMsgBO) {
         return weChatService.sendMessage(weChatSendMsgBO);
+    }
+
+    @PostMapping("/menu")
+    public String createMenu(@RequestBody CreateMenuBO createMenuBO) {
+        return weChatService.createMenu(createMenuBO);
     }
 }

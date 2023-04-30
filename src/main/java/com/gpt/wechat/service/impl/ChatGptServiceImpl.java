@@ -3,6 +3,8 @@ package com.gpt.wechat.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.gpt.wechat.common.config.ChatGptProperties;
 import com.gpt.wechat.common.constant.Constants;
+import com.gpt.wechat.entity.ChatDetailEntity;
+import com.gpt.wechat.entity.ChatTopicEntity;
 import com.gpt.wechat.service.ChatDetailService;
 import com.gpt.wechat.service.ChatGptService;
 import com.knuddels.jtokkit.Encodings;
@@ -15,6 +17,7 @@ import com.plexpt.chatgpt.entity.chat.ChatCompletionResponse;
 import com.plexpt.chatgpt.entity.chat.Message;
 import com.plexpt.chatgpt.util.Proxys;
 import com.zx.utils.util.MethodExecuteUtils;
+import com.zx.utils.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -63,31 +66,39 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
     private ChatDetailService chatDetailService;
 
     @Override
-    synchronized public String chatWithGpt(String userId, String topic, String question) {
+    public String chatWithGpt(String userId, ChatTopicEntity chatTopicEntity, String question) {
         List<Message> messageList = new ArrayList<>();
-        Message userMessage = Message.of(question);
-        Message systemMessage = Message.ofSystem(topic);
-        messageList.add(userMessage);
-        messageList.add(systemMessage);
-
-        List<String> chatQuestions = chatDetailService.pageQueryChatDetailUserId(userId, 1, 500);
-        int questionToken = 0;
+        messageList.add(Message.ofSystem(chatTopicEntity.getTopicText()));
+        List<ChatDetailEntity> chatDetailEntityList = chatDetailService.pageQueryChatDetailUserIdAndTopicId(userId, chatTopicEntity.getId(), 1, 500);
+        int tokens = 0;
         int canUseTokenCount = Constants.ALL_TOKENS - Constants.MAX_TOKENS;
         // 计算token值
-        for (String chatQuestion : chatQuestions) {
+        for (ChatDetailEntity chatDetailEntity : chatDetailEntityList) {
+            String chatQuestion = chatDetailEntity.getQuestion();
+            // user
             if (StringUtils.isNotEmpty(chatQuestion)) {
                 int sum = ENC.countTokens(chatQuestion);
-                if (questionToken + sum < canUseTokenCount) {
-                    questionToken += sum;
-                    Message assistant = new Message();
-                    assistant.setRole(Message.Role.ASSISTANT.getValue());
-                    assistant.setContent(chatQuestion);
-                    messageList.add(assistant);
+                if (tokens + sum < canUseTokenCount) {
+                    tokens += sum;
+                    messageList.add(Message.of(chatQuestion));
+                } else {
+                    break;
+                }
+            }
+            // assistant
+            String answer = chatDetailEntity.getAnswer();
+            if(StringUtil.isNotEmpty(answer)){
+                int sum = ENC.countTokens(answer);
+                if (tokens + sum < canUseTokenCount) {
+                    tokens += sum;
+                    Message message = new Message(Message.Role.ASSISTANT.getValue(), answer);
+                    messageList.add(message);
                 } else {
                     break;
                 }
             }
         }
+        messageList.add(Message.of(question));
         ChatCompletion chatCompletion = ChatCompletion.builder()
                 .model(ChatCompletion.Model.GPT_3_5_TURBO.getName())
                 .messages(messageList)

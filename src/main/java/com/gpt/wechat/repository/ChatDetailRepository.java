@@ -16,12 +16,12 @@ public interface ChatDetailRepository extends BaseRepository<ChatDetailEntity, L
 
     /**
      * 通过用户名和消息类型分页
-     *
      * @param userId
+     * @param topicId
      * @param msgType
      * @param pageable
      * @return
      */
-    @Query("from ChatDetailEntity cd where cd.userId = :userId and cd.msgType = :msgType and cd.valid = 1 order by cd.gmtCreate desc")
-    Page<ChatDetailEntity> pageQueryByUserIdMsgType(String userId, Integer msgType, Pageable pageable);
+    @Query("from ChatDetailEntity cd where cd.userId = :userId and cd.msgType = :msgType and cd.topicId = :topicId and cd.valid = 1 order by cd.gmtCreate desc")
+    Page<ChatDetailEntity> pageQueryChatDetailUserIdAndTopicId(String userId, Long topicId, Integer msgType, Pageable pageable);
 }

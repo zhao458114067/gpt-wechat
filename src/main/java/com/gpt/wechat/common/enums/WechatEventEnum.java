@@ -19,7 +19,14 @@ public enum WechatEventEnum {
     /**
      * 取关
      */
-    UNSUBSCRIBE_EVENT(2, "unsubscribe");
+    UNSUBSCRIBE_EVENT(2, "unsubscribe")
+    ,
+
+    /**
+     * 取关
+     */
+    CLICK_EVENT(2, "CLICK")
+    ;
 
     final int code;
     final String msgType;

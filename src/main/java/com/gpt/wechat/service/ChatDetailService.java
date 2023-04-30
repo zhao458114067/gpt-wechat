@@ -11,6 +11,7 @@ import java.util.List;
 public interface ChatDetailService {
     /**
      * 保存对应数据
+     *
      * @param chatDetailEntity
      * @return
      */
@@ -18,10 +19,12 @@ public interface ChatDetailService {
 
     /**
      * 分页查询历史聊天
+     *
      * @param userId
+     * @param topicId
      * @param page
      * @param pageSize
      * @return
      */
-    List<String> pageQueryChatDetailUserId(String userId, Integer page, Integer pageSize);
+    List<ChatDetailEntity> pageQueryChatDetailUserIdAndTopicId(String userId, Long topicId, Integer page, Integer pageSize);
 }

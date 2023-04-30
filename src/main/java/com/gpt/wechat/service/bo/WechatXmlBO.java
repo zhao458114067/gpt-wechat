@@ -61,10 +61,16 @@ public class WechatXmlBO implements Serializable {
     private String mediaId;
 
     /**
-     * 关注/取关时间
+     * 事件
      */
     @XmlElement(name = "Event")
     private String event;
+
+    /**
+     * 事件KEY值，与自定义菜单接口中KEY值对应
+     */
+    @XmlElement(name = "EventKey")
+    private String eventKey;
 
     /**
      * 地理位置经度
@@ -83,12 +89,6 @@ public class WechatXmlBO implements Serializable {
      */
     @XmlElement(name = "Precision")
     private String precision;
-
-    /**
-     * 事件KEY值，与自定义菜单接口中KEY值对应
-     */
-    @XmlElement(name = "EventKey")
-    private String eventKey;
 
     /**
      * 消息id

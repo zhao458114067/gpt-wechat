@@ -39,6 +39,11 @@ public interface Constants {
     String SEND_TEMPLATE_REQUEST_URL = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=";
 
     /**
+     * 创建菜单url
+     */
+    String CREATE_MENU_URL = "https://api.weixin.qq.com/cgi-bin/menu/create?access_token=";
+
+    /**
      * 公众号token失效
      */
     String ERR_TOKEN_INVALID = "40001";

@@ -5,16 +5,21 @@ import com.alibaba.fastjson.JSONObject;
 import com.gpt.wechat.common.aspect.LogAround;
 import com.gpt.wechat.common.constant.Constants;
 import com.gpt.wechat.common.enums.ChatSourceEnum;
+import com.gpt.wechat.common.enums.EventKeyEnum;
 import com.gpt.wechat.common.enums.WechatEventEnum;
 import com.gpt.wechat.common.enums.WechatMsgTypeEnum;
 import com.gpt.wechat.entity.ChatDetailEntity;
+import com.gpt.wechat.entity.ChatTopicEntity;
 import com.gpt.wechat.entity.TokenHistoryEntity;
 import com.gpt.wechat.entity.UserEntity;
 import com.gpt.wechat.service.ChatDetailService;
 import com.gpt.wechat.service.ChatGptService;
+import com.gpt.wechat.service.ChatTopicService;
 import com.gpt.wechat.service.TokenHistoryService;
 import com.gpt.wechat.service.UserService;
 import com.gpt.wechat.service.WeChatService;
+import com.gpt.wechat.service.WeatherService;
+import com.gpt.wechat.service.bo.CreateMenuBO;
 import com.gpt.wechat.service.bo.QueryTokenBO;
 import com.gpt.wechat.service.bo.WeChatSendMsgBO;
 import com.gpt.wechat.service.bo.WeatherPredictionResponse;
@@ -29,17 +34,16 @@ import com.zx.utils.util.XmlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,8 +52,8 @@ import java.util.Map;
  */
 @Service
 @Slf4j
-public class WeChatServiceImpl implements WeChatService {
-    private static String ACCESS_TOKEN = "init_token";
+public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
+    private static String ACCESS_TOKEN = "";
 
     @Autowired
     private ChatGptService chatGptService;
@@ -62,6 +66,9 @@ public class WeChatServiceImpl implements WeChatService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ChatTopicService chatTopicService;
 
     @Value("${we-chat.secret}")
     private String appSecret;
@@ -81,8 +88,13 @@ public class WeChatServiceImpl implements WeChatService {
     @Value("${we-chat.template.prediction-id}")
     private String predictionTemplateId;
 
-    @Value("${we-chat.template.warning-id}")
-    private String warningTemplateId;
+    @Autowired
+    private WeatherService weatherService;
+
+    @Scheduled(cron = "0 0 0/1 * * ? ")
+    public void refreshAccessToken() {
+        getAccessToken();
+    }
 
     @Override
     public String getAccessToken() {
@@ -110,12 +122,6 @@ public class WeChatServiceImpl implements WeChatService {
         String jsonString = JSON.toJSONString(weChatSendMsgBO);
         String response = HttpClientUtil.post(null, Constants.SEND_MESSAGE_URL + ACCESS_TOKEN, JSONObject.parseObject(jsonString));
         log.info("sendMessage.response:{}", response);
-        JSONObject responseJson = JSON.parseObject(response);
-        String errCode = responseJson.get("errcode").toString();
-        if (Constants.ERR_TOKEN_INVALID.equals(errCode) || Constants.ERR_TOKEN_INVALID2.equals(errCode)) {
-            ACCESS_TOKEN = getAccessToken();
-            return "";
-        }
         return response;
     }
 
@@ -135,14 +141,13 @@ public class WeChatServiceImpl implements WeChatService {
         log.info("sendWeatherTemplateMessage.request:{}", json);
         String response = HttpClientUtil.post(null, Constants.SEND_TEMPLATE_REQUEST_URL + ACCESS_TOKEN, json);
         log.info("sendWeatherTemplateMessage.response:{}", response);
-
-        JSONObject responseJson = JSON.parseObject(response);
-        String errCode = responseJson.get("errcode").toString();
-        if (Constants.ERR_TOKEN_INVALID.equals(errCode) || Constants.ERR_TOKEN_INVALID2.equals(errCode)) {
-            ACCESS_TOKEN = getAccessToken();
-            sendWeatherTemplateMessage(dailyWeather, warning, userEntity);
-        }
         return response;
+    }
+
+    @Override
+    public String createMenu(CreateMenuBO createMenuBO) {
+        JSONObject json = (JSONObject) JSON.toJSON(createMenuBO);
+        return HttpClientUtil.post(null, Constants.CREATE_MENU_URL + ACCESS_TOKEN, json);
     }
 
     /**
@@ -187,8 +192,8 @@ public class WeChatServiceImpl implements WeChatService {
     @Override
     @LogAround
     @Transactional(isolation = Isolation.SERIALIZABLE, rollbackFor = Exception.class)
-    public void eventArrived(String signature, String timestamp, String nonce, String echostr,
-                             String encryptType, String msgSignature, String openid, String receivedBody) {
+    synchronized public void eventArrived(String signature, String timestamp, String nonce, String echostr,
+                                          String encryptType, String msgSignature, String openid, String receivedBody) {
         String realXmlString = receivedBody;
         try {
             // 当是加密模式，需要解密，测试账号需要注释掉
@@ -202,7 +207,6 @@ public class WeChatServiceImpl implements WeChatService {
         WechatXmlBO wechatXmlBO = XmlUtils.xmlToJavaBean(realXmlString, WechatXmlBO.class);
         String msgType = wechatXmlBO.getMsgType();
         String content = wechatXmlBO.getContent();
-        String picUrl = wechatXmlBO.getPicUrl();
         String longitude = wechatXmlBO.getLongitude();
         String latitude = wechatXmlBO.getLatitude();
         String event = wechatXmlBO.getEvent();
@@ -213,27 +217,21 @@ public class WeChatServiceImpl implements WeChatService {
                     .userId(openid)
                     .valid(Constants.VALID_TRUE)
                     .longitude(longitude)
+                    .topicId(5L)
                     .latitude(latitude)
                     .build();
         }
 
-        ChatDetailEntity chatDetailEntity = ChatDetailEntity.builder()
-                .topicId(1L)
-                .valid(Constants.VALID_TRUE)
-                .msgType(WechatMsgTypeEnum.getCodeByMsgType(msgType))
-                .question(WechatMsgTypeEnum.TEXT_MESSAGE.getMsgType().equals(msgType) ? content : picUrl)
-                .userId(openid)
-                .chatSource(ChatSourceEnum.WE_CHAT_SOURCE.getCode())
+        WeChatSendMsgBO weChatSendMsgBO = WeChatSendMsgBO.builder()
+                .toUser(openid)
+                .msgType(msgType)
                 .build();
 
-        WeChatSendMsgBO weChatSendMsgBO = WeChatSendMsgBO.builder()
-                .msgType(msgType)
-                .toUser(openid)
-                .build();
         String answer = null;
+        ChatTopicEntity chatTopicByUser = chatTopicService.findByAttr("id", userEntity.getTopicId().toString()).get(0);
         // 文本消息
         if (WechatMsgTypeEnum.TEXT_MESSAGE.getMsgType().equals(msgType) && !content.contains(Constants.MESSAGE_NOT_SUPPORT)) {
-            answer = chatGptService.chatWithGpt(openid, Constants.TOPIC, content);
+            answer = chatGptService.chatWithGpt(openid, chatTopicByUser, content);
             weChatSendMsgBO.setText(new WeChatSendMsgBO.Text(answer));
         } else if (WechatMsgTypeEnum.EVENT_MESSAGE.getMsgType().equals(msgType)) {
             // 事件消息
@@ -246,7 +244,18 @@ public class WeChatServiceImpl implements WeChatService {
                 userEntity.setValid(Constants.VALID_FALSE);
                 userService.save(userEntity);
                 return;
+            } else if (WechatEventEnum.CLICK_EVENT.getMsgType().equals(event)) {
+                String topicCode = wechatXmlBO.getEventKey();
+                if (EventKeyEnum.WEATHER_PREDICTION.getEventKey().equals(topicCode)) {
+                    weatherService.pushWeatherTemplateMessageToUser(true, userEntity);
+                    return;
+                }
+                ChatTopicEntity chatTopicEntity = chatTopicService.findByAttr("topicCode", topicCode).get(0);
+                userEntity.setTopicId(chatTopicEntity.getId());
+                weChatSendMsgBO.setMsgType(WechatMsgTypeEnum.IMAGE_MESSAGE.getMsgType());
+                weChatSendMsgBO.setImage(new WeChatSendMsgBO.Image(mediaId));
             }
+
             if (StringUtil.isNotEmpty(longitude) && StringUtil.isNotEmpty(latitude)) {
                 userEntity.setLatitude(latitude);
                 userEntity.setLongitude(longitude);
@@ -259,6 +268,15 @@ public class WeChatServiceImpl implements WeChatService {
             weChatSendMsgBO.setMsgType(WechatMsgTypeEnum.IMAGE_MESSAGE.getMsgType());
             weChatSendMsgBO.setImage(new WeChatSendMsgBO.Image(mediaId));
         }
+
+        ChatDetailEntity chatDetailEntity = ChatDetailEntity.builder()
+                .topicId(userEntity.getTopicId())
+                .valid(Constants.VALID_TRUE)
+                .msgType(WechatMsgTypeEnum.getCodeByMsgType(msgType))
+                .question(WechatMsgTypeEnum.TEXT_MESSAGE.getMsgType().equals(msgType) ? content : wechatXmlBO.getPicUrl())
+                .userId(openid)
+                .chatSource(ChatSourceEnum.WE_CHAT_SOURCE.getCode())
+                .build();
 
         chatDetailEntity = chatDetailService.save(chatDetailEntity);
         userService.save(userEntity);
@@ -285,5 +303,10 @@ public class WeChatServiceImpl implements WeChatService {
                 }
             }
         });
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
+        getAccessToken();
     }
 }

@@ -64,58 +64,63 @@ public class WeatherServiceImpl implements WeatherService {
         if (StringUtil.isNotEmpty(weatherApiKey)) {
             List<UserEntity> userEntities = userService.queryAllUserInfoList();
             for (UserEntity userEntity : userEntities) {
-                String longitude = userEntity.getLongitude();
-                String latitude = userEntity.getLatitude();
-                if (StringUtil.isNotEmpty(longitude) && StringUtil.isNotEmpty(latitude)) {
-                    String location = longitude + "," + latitude;
-
-                    JSONObject queryWeatherJson = QueryWeatherBO.builder()
-                            .location(location)
-                            .key(weatherApiKey)
-                            .build()
-                            .toJsonObject();
-
-                    String response = HttpClientUtil.get(null, Constants.QUERY_CITY_BY_LOCATION, queryWeatherJson);
-
-                    JsonNode locationNode = DynamicObject.parseString(response).get("location").get(0);
-                    String cityName = locationNode.get("adm1").asText();
-                    cityName += locationNode.get("name").asText();
-                    if (isPrediction) {
-                        WeatherPredictionResponse.DailyWeather dailyWeather = queryWeatherPrediction(location);
-                        dailyWeather.setCity(cityName);
-                        weChatService.sendWeatherTemplateMessage(dailyWeather, null, userEntity);
-                    } else {
-                        List<WeatherWarningResponse.WeatherWarning> weatherWarnings = queryWeatherWarning(location);
-                        if (ListUtil.isNotEmpty(weatherWarnings)) {
-                            WeatherWarningResponse.WeatherWarning weatherWarning = weatherWarnings.get(0);
-                            List<WeatherWarningEntity> warningByWarningId = weatherWarningRepository.findByAttr("warningId", weatherWarning.getId());
-                            if (ListUtil.isEmpty(warningByWarningId)) {
-                                weatherWarning.setCity(cityName);
-                                weChatService.sendWeatherTemplateMessage(null, weatherWarning, userEntity);
-
-                                WeatherWarningEntity weatherWarningEntity = WeatherWarningEntity.builder()
-                                        .pubTime(weatherWarning.getPubTime())
-                                        .text(weatherWarning.getText())
-                                        .title(weatherWarning.getTitle())
-                                        .sender(weatherWarning.getSender())
-                                        .city(weatherWarning.getCity())
-                                        .typeName(weatherWarning.getTypeName())
-                                        .warningId(weatherWarning.getId())
-                                        .valid(Constants.VALID_TRUE)
-                                        .build();
-                                weatherWarningRepository.save(weatherWarningEntity);
-                            }
-                        }
-                    }
-                } else {
-                    log.info("用户：{}，无地理信息！", userEntity.getUserId());
-                }
+                pushWeatherTemplateMessageToUser(isPrediction, userEntity);
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
+        }
+    }
+
+    @Override
+    public void pushWeatherTemplateMessageToUser(boolean isPrediction, UserEntity userEntity) {
+        String longitude = userEntity.getLongitude();
+        String latitude = userEntity.getLatitude();
+        if (StringUtil.isNotEmpty(longitude) && StringUtil.isNotEmpty(latitude)) {
+            String location = longitude + "," + latitude;
+
+            JSONObject queryWeatherJson = QueryWeatherBO.builder()
+                    .location(location)
+                    .key(weatherApiKey)
+                    .build()
+                    .toJsonObject();
+
+            String response = HttpClientUtil.get(null, Constants.QUERY_CITY_BY_LOCATION, queryWeatherJson);
+
+            JsonNode locationNode = DynamicObject.parseString(response).get("location").get(0);
+            String cityName = locationNode.get("adm1").asText();
+            cityName += locationNode.get("name").asText();
+            if (isPrediction) {
+                WeatherPredictionResponse.DailyWeather dailyWeather = queryWeatherPrediction(location);
+                dailyWeather.setCity(cityName);
+                weChatService.sendWeatherTemplateMessage(dailyWeather, null, userEntity);
+            } else {
+                List<WeatherWarningResponse.WeatherWarning> weatherWarnings = queryWeatherWarning(location);
+                if (ListUtil.isNotEmpty(weatherWarnings)) {
+                    WeatherWarningResponse.WeatherWarning weatherWarning = weatherWarnings.get(0);
+                    List<WeatherWarningEntity> warningByWarningId = weatherWarningRepository.findByAttr("warningId", weatherWarning.getId());
+                    if (ListUtil.isEmpty(warningByWarningId)) {
+                        weatherWarning.setCity(cityName);
+                        weChatService.sendWeatherTemplateMessage(null, weatherWarning, userEntity);
+
+                        WeatherWarningEntity weatherWarningEntity = WeatherWarningEntity.builder()
+                                .pubTime(weatherWarning.getPubTime())
+                                .text(weatherWarning.getText())
+                                .title(weatherWarning.getTitle())
+                                .sender(weatherWarning.getSender())
+                                .city(weatherWarning.getCity())
+                                .typeName(weatherWarning.getTypeName())
+                                .warningId(weatherWarning.getId())
+                                .valid(Constants.VALID_TRUE)
+                                .build();
+                        weatherWarningRepository.save(weatherWarningEntity);
+                    }
+                }
+            }
+        } else {
+            log.info("用户：{}，无地理信息！", userEntity.getUserId());
         }
     }
 

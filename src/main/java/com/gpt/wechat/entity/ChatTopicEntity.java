@@ -39,8 +39,14 @@ public class ChatTopicEntity {
     /**
      * 主题名
      */
-    @Column(name = "topic_text")
+    @Column
     String topicText;
+
+    /**
+     * 主题编码
+     */
+    @Column
+    String topicCode;
 
     @CreatedDate
     @Column(name = "gmt_create", updatable = false)
