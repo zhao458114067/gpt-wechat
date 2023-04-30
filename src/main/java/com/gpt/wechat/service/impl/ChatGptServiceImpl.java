@@ -14,6 +14,7 @@ import com.plexpt.chatgpt.entity.chat.ChatCompletion;
 import com.plexpt.chatgpt.entity.chat.ChatCompletionResponse;
 import com.plexpt.chatgpt.entity.chat.Message;
 import com.plexpt.chatgpt.util.Proxys;
+import com.zx.utils.util.MethodExecuteUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -75,13 +76,12 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
         // 计算token值
         for (String chatQuestion : chatQuestions) {
             if (StringUtils.isNotEmpty(chatQuestion)) {
-                List<Integer> encode = ENC.encode(chatQuestion);
-                int sum = encode.stream().mapToInt(Integer::intValue).sum();
+                int sum = ENC.countTokens(chatQuestion);
                 if (questionToken + sum < canUseTokenCount) {
                     questionToken += sum;
                     Message assistant = new Message();
                     assistant.setRole(Message.Role.ASSISTANT.getValue());
-                    assistant.setContent(question);
+                    assistant.setContent(chatQuestion);
                     messageList.add(assistant);
                 } else {
                     break;
@@ -94,9 +94,8 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
                 .maxTokens(Constants.MAX_TOKENS)
                 .temperature(0.9)
                 .build();
-        ChatCompletionResponse response = chatGpt.chatCompletion(chatCompletion);
+        ChatCompletionResponse response = MethodExecuteUtils.logAround(chatCompletion, chatGpt::chatCompletion);
         Message chatGptRes = response.getChoices().get(0).getMessage();
-        log.info("chatGptRes: {}", JSON.toJSONString(chatGptRes));
         return chatGptRes.getContent();
     }
 
