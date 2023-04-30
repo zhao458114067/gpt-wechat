@@ -88,11 +88,23 @@ public class WeatherServiceImpl implements WeatherService {
                         List<WeatherWarningResponse.WeatherWarning> weatherWarnings = queryWeatherWarning(location);
                         if (ListUtil.isNotEmpty(weatherWarnings)) {
                             WeatherWarningResponse.WeatherWarning weatherWarning = weatherWarnings.get(0);
-                            weatherWarning.setCity(cityName);
-                            weChatService.sendWeatherTemplateMessage(null, weatherWarning, userEntity);
-                            WeatherWarningEntity weatherWarningEntity = BeanUtil.copyProperties(weatherWarning, WeatherWarningEntity.class);
-                            weatherWarningEntity.setValid(Constants.VALID_TRUE);
-                            weatherWarningRepository.save(weatherWarningEntity);
+                            List<WeatherWarningEntity> warningByWarningId = weatherWarningRepository.findByAttr("warningId", weatherWarning.getId());
+                            if (ListUtil.isEmpty(warningByWarningId)) {
+                                weatherWarning.setCity(cityName);
+                                weChatService.sendWeatherTemplateMessage(null, weatherWarning, userEntity);
+
+                                WeatherWarningEntity weatherWarningEntity = WeatherWarningEntity.builder()
+                                        .pubTime(weatherWarning.getPubTime())
+                                        .text(weatherWarning.getText())
+                                        .title(weatherWarning.getTitle())
+                                        .sender(weatherWarning.getSender())
+                                        .city(weatherWarning.getCity())
+                                        .typeName(weatherWarning.getTypeName())
+                                        .warningId(weatherWarning.getId())
+                                        .valid(Constants.VALID_TRUE)
+                                        .build();
+                                weatherWarningRepository.save(weatherWarningEntity);
+                            }
                         }
                     }
                 } else {
