@@ -1,0 +1,27 @@
+尊敬的用户，您好！
+
+【今日天气预报】
+城市：{{city.DATA}}
+日出时间：{{sunrise.DATA}}
+日落时间：{{sunset.DATA}}
+月相名称：{{moonPhase.DATA}}
+最高气温：{{tempMax.DATA}}
+最低气温：{{tempMin.DATA}}
+白天天气状况：{{textDay.DATA}}
+夜间天气状况：{{textNight.DATA}}
+白天风力等级：{{windScaleDay.DATA}}
+当天总降水量（毫米）：{{precip.DATA}}
+
+尊敬的用户，您好！
+
+【今日天气预警】
+城市：{{city.DATA}}
+标题：{{ item.title.DATA }}
+预警开始时间：{{ item.startTime.DATA }}
+预警结束时间：{{ item.endTime.DATA }}
+预警严重等级：{{ item.severity.DATA }}
+发布状态：{{ item.status.DATA }}
+预警类型：{{ item.typeName.DATA }}
+紧迫程度：{{ item.urgency.DATA }}
+确定性：{{ item.certainty.DATA }}
+详情：{{ item.text.DATA }}

@@ -96,6 +96,9 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     @Value("${we-chat.template.prediction-id}")
     private String predictionTemplateId;
 
+    @Value("${we-chat.template.warning-id}")
+    private String warningTemplateId;
+
     @Autowired
     private WeatherService weatherService;
 
@@ -138,7 +141,7 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
         WeatherTemplateMessageDTO.WeatherData weatherData = buildWeatherRequestData(dailyWeather, warning);
         WeatherTemplateMessageDTO weatherTemplateMessageDTO = WeatherTemplateMessageDTO.builder()
                 .page("index")
-                .templateId(predictionTemplateId)
+                .templateId(dailyWeather != null ? predictionTemplateId : warningTemplateId)
                 .toUser(userEntity.getUserId())
                 .data(weatherData)
                 .build();
