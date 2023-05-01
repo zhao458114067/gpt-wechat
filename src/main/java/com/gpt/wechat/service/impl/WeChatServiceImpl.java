@@ -29,9 +29,11 @@ import com.gpt.wechat.service.bo.WechatXmlBO;
 import com.gpt.wechat.wechat.WXBizMsgCrypt;
 import com.zx.utils.util.HttpClientUtil;
 import com.zx.utils.util.ReflectUtil;
+import com.zx.utils.util.RetryMonitor;
 import com.zx.utils.util.StringUtil;
 import com.zx.utils.util.XmlUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -45,6 +47,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author ZhaoXu
@@ -70,6 +75,9 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     @Autowired
     private ChatTopicService chatTopicService;
 
+    @Autowired
+    private RetryMonitor retryMonitor;
+
     @Value("${we-chat.secret}")
     private String appSecret;
 
@@ -91,10 +99,8 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     @Autowired
     private WeatherService weatherService;
 
-    @Scheduled(cron = "0 0 0/1 * * ? ")
-    public void refreshAccessToken() {
-        getAccessToken();
-    }
+    private final ScheduledExecutorService retryTaskExecutor = new ScheduledThreadPoolExecutor(1,
+            new BasicThreadFactory.Builder().namingPattern("retryTaskExecutor").daemon(true).build());
 
     @Override
     public String getAccessToken() {
@@ -192,8 +198,8 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     @Override
     @LogAround
     @Transactional(isolation = Isolation.SERIALIZABLE, rollbackFor = Exception.class)
-    synchronized public void eventArrived(String signature, String timestamp, String nonce, String echostr,
-                                          String encryptType, String msgSignature, String openid, String receivedBody) {
+    public void eventArrived(String signature, String timestamp, String nonce, String echostr,
+                             String encryptType, String msgSignature, String openid, String receivedBody) {
         String realXmlString = receivedBody;
         try {
             // 当是加密模式，需要解密，测试账号需要注释掉
@@ -288,25 +294,13 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
             public void beforeCommit(boolean readOnly) {
                 finalChatDetailEntity.setAnswer(finalAnswer);
                 chatDetailService.save(finalChatDetailEntity);
-                // 最多重试三次
-                for (int i = 0; i < 3; i++) {
-                    String sendResponse = sendMessage(weChatSendMsgBO);
-                    if (StringUtil.isEmpty(sendResponse)) {
-                        try {
-                            Thread.sleep(3000);
-                            continue;
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    break;
-                }
+                retryMonitor.registryRetry(() -> sendMessage(weChatSendMsgBO));
             }
         });
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        getAccessToken();
+        retryTaskExecutor.scheduleAtFixedRate(this::getAccessToken, 0, 60, TimeUnit.MINUTES);
     }
 }

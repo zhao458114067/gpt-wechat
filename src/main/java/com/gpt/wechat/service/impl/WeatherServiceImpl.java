@@ -1,6 +1,5 @@
 package com.gpt.wechat.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,9 +17,10 @@ import com.gpt.wechat.service.bo.WeatherWarningResponse;
 import com.zx.utils.util.DynamicObject;
 import com.zx.utils.util.HttpClientUtil;
 import com.zx.utils.util.ListUtil;
+import com.zx.utils.util.RetryMonitor;
 import com.zx.utils.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -28,6 +28,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * @author KuiChi
@@ -48,13 +50,16 @@ public class WeatherServiceImpl implements WeatherService {
     @Autowired
     private WeatherWarningRepository weatherWarningRepository;
 
+    @Autowired
+    private RetryMonitor retryMonitor;
+
     @Scheduled(cron = "0 0 8 1/1 * ? ")
 //    @Scheduled(cron = "0/30 * * * * ? ")
     public void pushWeatherPrediction() {
         pushWeatherTemplateMessage(Boolean.TRUE);
     }
 
-    @Scheduled(cron = "0 0/1 * * * ? ")
+    @Scheduled(cron = "0 0/30 * * * ? ")
     public void pushWeatherWarning() {
         pushWeatherTemplateMessage(Boolean.FALSE);
     }
@@ -64,18 +69,13 @@ public class WeatherServiceImpl implements WeatherService {
         if (StringUtil.isNotEmpty(weatherApiKey)) {
             List<UserEntity> userEntities = userService.queryAllUserInfoList();
             for (UserEntity userEntity : userEntities) {
-                pushWeatherTemplateMessageToUser(isPrediction, userEntity);
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                retryMonitor.registryRetry(()->pushWeatherTemplateMessageToUser(isPrediction, userEntity));
             }
         }
     }
 
     @Override
-    public void pushWeatherTemplateMessageToUser(boolean isPrediction, UserEntity userEntity) {
+    public String pushWeatherTemplateMessageToUser(boolean isPrediction, UserEntity userEntity) {
         String longitude = userEntity.getLongitude();
         String latitude = userEntity.getLatitude();
         if (StringUtil.isNotEmpty(longitude) && StringUtil.isNotEmpty(latitude)) {
@@ -122,6 +122,7 @@ public class WeatherServiceImpl implements WeatherService {
         } else {
             log.info("用户：{}，无地理信息！", userEntity.getUserId());
         }
+        return "success";
     }
 
     @Override

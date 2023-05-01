@@ -43,6 +43,7 @@ public interface WeatherService {
      * 推送天气模板消息
      * @param isPrediction
      * @param userId
+     * @return
      */
-    void pushWeatherTemplateMessageToUser(boolean isPrediction, UserEntity userId);
+    String pushWeatherTemplateMessageToUser(boolean isPrediction, UserEntity userId);
 }

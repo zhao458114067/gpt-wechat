@@ -33,9 +33,12 @@ import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.stream.Collectors;
 
 import static org.hibernate.validator.internal.util.logging.Messages.MESSAGES;
 
@@ -68,44 +71,49 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
     @Override
     public String chatWithGpt(String userId, ChatTopicEntity chatTopicEntity, String question) {
         List<Message> messageList = new ArrayList<>();
-        messageList.add(Message.ofSystem(chatTopicEntity.getTopicText()));
         List<ChatDetailEntity> chatDetailEntityList = chatDetailService.pageQueryChatDetailUserIdAndTopicId(userId, chatTopicEntity.getId(), 1, 500);
         int tokens = 0;
         int canUseTokenCount = Constants.ALL_TOKENS - Constants.MAX_TOKENS;
         // 计算token值
         for (ChatDetailEntity chatDetailEntity : chatDetailEntityList) {
             String chatQuestion = chatDetailEntity.getQuestion();
+            String answer = chatDetailEntity.getAnswer();
+            if (StringUtils.isAnyEmpty(chatQuestion, answer)) {
+                continue;
+            }
             // user
-            if (StringUtils.isNotEmpty(chatQuestion)) {
-                int sum = ENC.countTokens(chatQuestion);
-                if (tokens + sum < canUseTokenCount) {
-                    tokens += sum;
-                    messageList.add(Message.of(chatQuestion));
-                } else {
-                    break;
-                }
+            int sum = ENC.countTokens(chatQuestion);
+            if (tokens + sum < canUseTokenCount) {
+                tokens += sum;
+                messageList.add(Message.of(chatQuestion));
+            } else {
+                break;
             }
             // assistant
-            String answer = chatDetailEntity.getAnswer();
-            if(StringUtil.isNotEmpty(answer)){
-                int sum = ENC.countTokens(answer);
-                if (tokens + sum < canUseTokenCount) {
-                    tokens += sum;
-                    Message message = new Message(Message.Role.ASSISTANT.getValue(), answer);
-                    messageList.add(message);
-                } else {
-                    break;
-                }
+            sum = ENC.countTokens(answer);
+            if (tokens + sum < canUseTokenCount) {
+                tokens += sum;
+                Message message = new Message(Message.Role.ASSISTANT.getValue(), answer);
+                messageList.add(message);
+            } else {
+                break;
             }
         }
+        messageList.add(Message.ofSystem(chatTopicEntity.getTopicText()));
+        Collections.reverse(messageList);
         messageList.add(Message.of(question));
         ChatCompletion chatCompletion = ChatCompletion.builder()
-                .model(ChatCompletion.Model.GPT_3_5_TURBO.getName())
+                .model(ChatCompletion.Model.GPT_3_5_TURBO_0301.getName())
                 .messages(messageList)
                 .maxTokens(Constants.MAX_TOKENS)
-                .temperature(0.9)
+                .temperature(1)
+                .topP(1)
+                .n(1)
+                .frequencyPenalty(0)
+                .presencePenalty(0)
                 .build();
-        ChatCompletionResponse response = MethodExecuteUtils.logAround(chatCompletion, chatGpt::chatCompletion);
+
+        ChatCompletionResponse response = MethodExecuteUtils.logAround(() -> chatGpt.chatCompletion(chatCompletion));
         Message chatGptRes = response.getChoices().get(0).getMessage();
         return chatGptRes.getContent();
     }
@@ -113,7 +121,6 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         // 国内需要代理 国外不需要
-
         String[] keys = chatGptProperties.getKeys();
         chatGpt = ChatGPT.builder()
                 .apiKeyList(Arrays.asList(keys))
