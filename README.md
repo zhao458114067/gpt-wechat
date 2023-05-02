@@ -4,9 +4,6 @@
   * token值动态计算，自动组合用户聊天上下文
   * 天气预报/天气预警推送功能
 
-# 实现效果
-![img.png](src/main/resources/images/display.png)
-
 # 开始
 
 * 需要一台有公网的服务器，不然腾讯消息没地方转，或者
@@ -31,3 +28,7 @@
 接着将申请到的微信配置信息以及ChatGPT的key填入到application.yaml当中，启动即可
 
 ![img.png](src/main/resources/images/img.png)
+
+
+# 实现效果
+![img.png](src/main/resources/images/display.png)
