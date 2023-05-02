@@ -65,7 +65,7 @@ public interface Constants {
     /**
      * 请求tokens
      */
-    Integer MAX_TOKENS = 100;
+    Integer MAX_TOKENS = 500;
 
     /**
      * 数据生效

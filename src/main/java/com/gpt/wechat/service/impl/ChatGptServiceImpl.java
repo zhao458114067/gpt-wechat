@@ -2,6 +2,7 @@ package com.gpt.wechat.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.gpt.wechat.common.config.ChatGptProperties;
+import com.gpt.wechat.common.config.StreamListener;
 import com.gpt.wechat.common.constant.Constants;
 import com.gpt.wechat.entity.ChatDetailEntity;
 import com.gpt.wechat.entity.ChatTopicEntity;
@@ -12,10 +13,13 @@ import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.plexpt.chatgpt.ChatGPT;
+import com.plexpt.chatgpt.ChatGPTStream;
 import com.plexpt.chatgpt.entity.chat.ChatCompletion;
 import com.plexpt.chatgpt.entity.chat.ChatCompletionResponse;
 import com.plexpt.chatgpt.entity.chat.Message;
+import com.plexpt.chatgpt.listener.SseStreamListener;
 import com.plexpt.chatgpt.util.Proxys;
+import com.plexpt.chatgpt.util.SseHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.net.Proxy;
 import java.util.ArrayList;
@@ -38,6 +43,8 @@ import java.util.List;
 @Slf4j
 public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
     private static ChatGPT chatGpt;
+
+    private static ChatGPTStream chatGptStream;
 
     private static Encoding ENC;
 
@@ -93,15 +100,18 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
             messageList.add(Message.ofSystem(systemText));
         }
         ChatCompletion chatCompletion = ChatCompletion.builder()
-                .model(ChatCompletion.Model.GPT_3_5_TURBO.getName())
+                .model(ChatCompletion.Model.GPT_3_5_TURBO_0301.getName())
                 .messages(messageList)
                 .maxTokens(Constants.MAX_TOKENS)
-                .temperature(0.7)
+                .temperature(1)
                 .topP(1)
                 .n(1)
                 .frequencyPenalty(0)
                 .presencePenalty(0)
                 .build();
+//        SseEmitter sseEmitter = new SseEmitter(-1L);
+//        StreamListener listener = new StreamListener(sseEmitter);
+//        chatGptStream.streamChatCompletion(chatCompletion, listener);
         log.info("chatGpt.chatCompletion方法执行,request:{}", JSON.toJSONString(chatCompletion));
         ChatCompletionResponse response = chatGpt.chatCompletion(chatCompletion);
         log.info("chatGpt.chatCompletion方法执行,response:{}", JSON.toJSONString(response));
@@ -119,11 +129,19 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
                 .apiHost("https://api.openai.com/")
                 .build();
 
+        chatGptStream = ChatGPTStream.builder()
+                .apiKeyList(Arrays.asList(keys))
+                .timeout(900)
+                .apiHost("https://api.openai.com/")
+                .build();
+
         if (Constants.ENVIRONMENT_DEV.equals(activeEnvironment)) {
             Proxy proxy = Proxys.socks5(agentIp, agentPort);
             chatGpt.setProxy(proxy);
+            chatGptStream.setProxy(proxy);
         }
         chatGpt.init();
+        chatGptStream.init();
 
         EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
         ENC = registry.getEncoding(EncodingType.CL100K_BASE);
