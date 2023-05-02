@@ -1,13 +1,13 @@
-# Read Me First
+# 代码介绍
   * The JVM level was changed from '1.8'
-  * 只需要自己走一些公众号、chatGPT、服务器申请流程，通过配置，开箱即用
-  * 原理是用户向公众号发送一条消息，这条消息首先到腾讯的服务器上，
-  腾讯会将消息再转发到你的机器上，你就能够通过转发过来的消息进行，
-  一些逻辑处理
+  * 只需要自己申请公众号、chatGPT账号、通过配置启动，开箱即用
   * token值动态计算，自动组合用户聊天上下文
   * 天气预报/天气预警推送功能
 
-# Getting Started
+# 实现效果
+![img.png](src/main/resources/images/display.png)
+
+# 开始
 
 * 需要一台有公网的服务器，不然腾讯消息没地方转，或者
   使用 https://natapp.cn 进行内网穿透，最好申请一台在国外的服务器，
