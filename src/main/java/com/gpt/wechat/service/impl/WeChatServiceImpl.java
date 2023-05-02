@@ -33,7 +33,6 @@ import com.zx.utils.util.RetryMonitor;
 import com.zx.utils.util.StringUtil;
 import com.zx.utils.util.XmlUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +43,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -181,10 +182,16 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
             for (Map.Entry<String, Object> stringObjectEntry : fieldsValue.entrySet()) {
                 try {
                     WeatherTemplateMessageDTO.Item item = new WeatherTemplateMessageDTO.Item();
-                    item.setValue(stringObjectEntry.getValue().toString());
+                    String fieldName = stringObjectEntry.getKey();
+                    String value = stringObjectEntry.getValue().toString();
+                    if (fieldName.toLowerCase().contains("time")) {
+                        ZonedDateTime parse = ZonedDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mmXXX"));
+                        value = parse.toLocalDateTime().toString();
+                    }
+                    item.setValue(value);
                     item.setColor("#173177");
                     item.setBold(false);
-                    ReflectUtil.executeMethod(weatherData, "set" + StringUtil.firstCharToUpperCase(stringObjectEntry.getKey()), item);
+                    ReflectUtil.executeMethod(weatherData, "set" + StringUtil.firstCharToUpperCase(fieldName), item);
                 } catch (Exception e) {
                 }
             }
