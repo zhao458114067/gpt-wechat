@@ -38,6 +38,8 @@ public interface Constants {
      */
     String SEND_TEMPLATE_REQUEST_URL = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=";
 
+    String QUERY_USER_LOCATION_URL = "https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN";
+
     /**
      * 创建菜单url
      */
@@ -63,7 +65,7 @@ public interface Constants {
     /**
      * 请求tokens
      */
-    Integer MAX_TOKENS = 800;
+    Integer MAX_TOKENS = 100;
 
     /**
      * 数据生效

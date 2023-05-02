@@ -70,11 +70,9 @@ public interface WeChatService {
     /**
      * 回复图片
      * @param wechatXmlBO
-     * @param msgSignature
      * @param timestamp
      * @param nonce
-     * @param receivedBody
      * @return
      */
-    String replayImageMessage(WechatXmlBO wechatXmlBO, String msgSignature, String timestamp, String nonce, String receivedBody);
+    String replayImageMessage(WechatXmlBO wechatXmlBO, String timestamp, String nonce);
 }

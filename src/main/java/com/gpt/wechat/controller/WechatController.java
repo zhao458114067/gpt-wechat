@@ -74,7 +74,7 @@ public class WechatController {
         }, threadPoolTaskExecutor);
 
         if (WechatEventEnum.CLICK_EVENT.getMsgType().equals(wechatXmlBO.getEvent()) && !EventKeyEnum.WEATHER_PREDICTION.getEventKey().equals(wechatXmlBO.getEventKey())) {
-            return weChatService.replayImageMessage(wechatXmlBO, msgSignature, timestamp, nonce, receivedBody);
+            return weChatService.replayImageMessage(wechatXmlBO, timestamp, nonce);
         }
         return "";
     }

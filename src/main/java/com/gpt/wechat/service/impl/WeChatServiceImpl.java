@@ -130,7 +130,7 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     public String sendMessage(WeChatSendMsgBO weChatSendMsgBO) {
         String jsonString = JSON.toJSONString(weChatSendMsgBO);
         String response = HttpClientUtil.post(null, Constants.SEND_MESSAGE_URL + ACCESS_TOKEN, JSONObject.parseObject(jsonString));
-        log.info("sendMessage.response:{}", response);
+        log.info("sendMessage.request:{}, response:{}", jsonString, response);
         return response;
     }
 
@@ -316,7 +316,7 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
 
     @Override
     @LogAround
-    public String replayImageMessage(WechatXmlBO wechatXmlBO, String msgSignature, String timestamp, String nonce, String receivedBody) {
+    public String replayImageMessage(WechatXmlBO wechatXmlBO, String timestamp, String nonce) {
         WechatXmlBO responseXml = WechatXmlBO.builder()
                 .fromUserName(appendCdata(wechatXmlBO.getToUserName()))
                 .toUserName(appendCdata(wechatXmlBO.getFromUserName()))
