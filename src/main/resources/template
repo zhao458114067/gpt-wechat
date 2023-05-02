@@ -16,12 +16,12 @@
 
 【今日天气预警】
 城市：{{city.DATA}}
-标题：{{ item.title.DATA }}
-预警开始时间：{{ item.startTime.DATA }}
-预警结束时间：{{ item.endTime.DATA }}
-预警严重等级：{{ item.severity.DATA }}
-发布状态：{{ item.status.DATA }}
-预警类型：{{ item.typeName.DATA }}
-紧迫程度：{{ item.urgency.DATA }}
-确定性：{{ item.certainty.DATA }}
-详情：{{ item.text.DATA }}
+标题：{{ title.DATA }}
+预警开始时间：{{ startTime.DATA }}
+预警结束时间：{{ endTime.DATA }}
+预警严重等级：{{ severity.DATA }}
+发布状态：{{ status.DATA }}
+预警类型：{{ typeName.DATA }}
+紧迫程度：{{ urgency.DATA }}
+确定性：{{ certainty.DATA }}
+详情：{{ text.DATA }}

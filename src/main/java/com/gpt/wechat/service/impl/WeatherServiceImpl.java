@@ -57,8 +57,8 @@ public class WeatherServiceImpl implements WeatherService {
         pushWeatherTemplateMessage(Boolean.TRUE);
     }
 
-//    @Scheduled(cron = "0 0/30 * * * ? ", zone = "Asia/Shanghai")
-    @Scheduled(cron = "30 1/1 * * * ? ", zone = "Asia/Shanghai")
+    @Scheduled(cron = "0 0/30 * * * ? ", zone = "Asia/Shanghai")
+//    @Scheduled(cron = "30 1/1 * * * ? ", zone = "Asia/Shanghai")
     public void pushWeatherWarning() {
         log.info("推送天气预警开始！");
         pushWeatherTemplateMessage(Boolean.FALSE);
