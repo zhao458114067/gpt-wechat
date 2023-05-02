@@ -20,16 +20,14 @@ import com.zx.utils.util.ListUtil;
 import com.zx.utils.util.RetryMonitor;
 import com.zx.utils.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * @author KuiChi
@@ -53,14 +51,16 @@ public class WeatherServiceImpl implements WeatherService {
     @Autowired
     private RetryMonitor retryMonitor;
 
-    @Scheduled(cron = "0 0 8 1/1 * ? ")
-//    @Scheduled(cron = "0/30 * * * * ? ")
+    @Scheduled(cron = "0 0 8 1/1 * ? ", zone = "Asia/Shanghai")
     public void pushWeatherPrediction() {
+        log.info("推送当日天气预报开始！");
         pushWeatherTemplateMessage(Boolean.TRUE);
     }
 
-    @Scheduled(cron = "0 0/30 * * * ? ")
+//    @Scheduled(cron = "0 0/30 * * * ? ", zone = "Asia/Shanghai")
+    @Scheduled(cron = "30 1/1 * * * ? ", zone = "Asia/Shanghai")
     public void pushWeatherWarning() {
+        log.info("推送天气预警开始！");
         pushWeatherTemplateMessage(Boolean.FALSE);
     }
 
@@ -69,7 +69,7 @@ public class WeatherServiceImpl implements WeatherService {
         if (StringUtil.isNotEmpty(weatherApiKey)) {
             List<UserEntity> userEntities = userService.queryAllUserInfoList();
             for (UserEntity userEntity : userEntities) {
-                retryMonitor.registryRetry(()->pushWeatherTemplateMessageToUser(isPrediction, userEntity));
+                retryMonitor.registryRetry(() -> pushWeatherTemplateMessageToUser(isPrediction, userEntity));
             }
         }
     }

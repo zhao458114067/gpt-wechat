@@ -72,7 +72,8 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
     public String chatWithGpt(String userId, ChatTopicEntity chatTopicEntity, String question) {
         List<Message> messageList = new ArrayList<>();
         List<ChatDetailEntity> chatDetailEntityList = chatDetailService.pageQueryChatDetailUserIdAndTopicId(userId, chatTopicEntity.getId(), 1, 500);
-        int tokens = 0;
+        String systemText = chatTopicEntity.getTopicText();
+        int tokens = ENC.countTokens(systemText);
         int canUseTokenCount = Constants.ALL_TOKENS - Constants.MAX_TOKENS;
         // 计算token值
         for (ChatDetailEntity chatDetailEntity : chatDetailEntityList) {
@@ -82,38 +83,40 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
                 continue;
             }
             // user
-            int sum = ENC.countTokens(chatQuestion);
-            if (tokens + sum < canUseTokenCount) {
-                tokens += sum;
-                messageList.add(Message.of(chatQuestion));
-            } else {
-                break;
-            }
+            Message userMessage = Message.of(chatQuestion);
+            tokens += ENC.countTokens(JSON.toJSONString(userMessage));
             // assistant
-            sum = ENC.countTokens(answer);
+            Message assistantMessage = new Message(Message.Role.ASSISTANT.getValue(), answer);
+            int sum = ENC.countTokens(JSON.toJSONString(assistantMessage));
             if (tokens + sum < canUseTokenCount) {
                 tokens += sum;
-                Message message = new Message(Message.Role.ASSISTANT.getValue(), answer);
-                messageList.add(message);
             } else {
+                log.info("目前tokens:{}, 超限token：{}", tokens, JSON.toJSONString(chatDetailEntity));
                 break;
             }
+            messageList.add(assistantMessage);
+            messageList.add(userMessage);
         }
-        messageList.add(Message.ofSystem(chatTopicEntity.getTopicText()));
+        messageList.add(Message.ofSystem(systemText));
         Collections.reverse(messageList);
-        messageList.add(Message.of(question));
+        if (StringUtils.isNotEmpty(question)) {
+            messageList.add(Message.of(question));
+        } else {
+            messageList.add(Message.ofSystem(systemText));
+        }
         ChatCompletion chatCompletion = ChatCompletion.builder()
-                .model(ChatCompletion.Model.GPT_3_5_TURBO_0301.getName())
+                .model(ChatCompletion.Model.GPT_3_5_TURBO.getName())
                 .messages(messageList)
                 .maxTokens(Constants.MAX_TOKENS)
-                .temperature(1)
+                .temperature(0.7)
                 .topP(1)
                 .n(1)
                 .frequencyPenalty(0)
                 .presencePenalty(0)
                 .build();
-
-        ChatCompletionResponse response = MethodExecuteUtils.logAround(() -> chatGpt.chatCompletion(chatCompletion));
+        log.info("chatGpt.chatCompletion方法执行,request:{}", JSON.toJSONString(chatCompletion));
+        ChatCompletionResponse response = chatGpt.chatCompletion(chatCompletion);
+        log.info("chatGpt.chatCompletion方法执行,response:{}", JSON.toJSONString(response));
         Message chatGptRes = response.getChoices().get(0).getMessage();
         return chatGptRes.getContent();
     }

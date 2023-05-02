@@ -1,8 +1,12 @@
 package com.gpt.wechat.controller;
 
+import com.gpt.wechat.common.aspect.LogAround;
+import com.gpt.wechat.common.enums.EventKeyEnum;
+import com.gpt.wechat.common.enums.WechatEventEnum;
 import com.gpt.wechat.service.bo.CreateMenuBO;
 import com.gpt.wechat.service.WeChatService;
 import com.gpt.wechat.service.bo.WeChatSendMsgBO;
+import com.gpt.wechat.service.bo.WechatXmlBO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -36,6 +40,7 @@ public class WechatController {
      * @return
      */
     @GetMapping("/event")
+    @LogAround
     public String event(@RequestParam(name = "echostr", required = false) String echostr) {
         return echostr;
     }
@@ -63,9 +68,14 @@ public class WechatController {
                         @RequestParam(name = "msg_signature", required = false) String msgSignature,
                         @RequestParam(name = "openid", required = false) String openid,
                         @RequestBody(required = false) String receivedBody) {
+        WechatXmlBO wechatXmlBO = weChatService.getWechatXmlBO(timestamp, nonce, msgSignature, receivedBody);
         CompletableFuture.runAsync(() -> {
-            weChatService.eventArrived(signature, timestamp, nonce, echostr, encryptType, msgSignature, openid, receivedBody);
+            weChatService.eventArrived(wechatXmlBO);
         }, threadPoolTaskExecutor);
+
+        if (WechatEventEnum.CLICK_EVENT.getMsgType().equals(wechatXmlBO.getEvent()) && !EventKeyEnum.WEATHER_PREDICTION.getEventKey().equals(wechatXmlBO.getEventKey())) {
+            return weChatService.replayImageMessage(wechatXmlBO, msgSignature, timestamp, nonce, receivedBody);
+        }
         return "";
     }
 

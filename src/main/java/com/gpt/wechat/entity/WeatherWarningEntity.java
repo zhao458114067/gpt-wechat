@@ -25,7 +25,7 @@ import java.util.Date;
  * @date 2023/4/30 21:54
  */
 @Entity
-@Table(name = "user_info")
+@Table(name = "weather_push_history")
 @Data
 @Builder
 @NoArgsConstructor

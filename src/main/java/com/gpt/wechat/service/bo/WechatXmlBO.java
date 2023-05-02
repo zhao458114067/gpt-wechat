@@ -1,6 +1,9 @@
 package com.gpt.wechat.service.bo;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -13,7 +16,10 @@ import java.io.Serializable;
  * @date 2023/4/29 22:15
  */
 @XmlRootElement(name = "xml")
+@NoArgsConstructor
+@AllArgsConstructor
 @XmlAccessorType(XmlAccessType.FIELD)
+@Builder
 @Data
 public class WechatXmlBO implements Serializable {
     private static final long serialVersionUID = 6534263487504905664L;
@@ -95,4 +101,19 @@ public class WechatXmlBO implements Serializable {
      */
     @XmlElement(name = "MsgId")
     private String msgId;
+
+    @XmlElement(name = "Image")
+    private XmlImage image;
+
+    @XmlRootElement(name = "Image")
+    @XmlAccessorType(XmlAccessType.FIELD)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Data
+    public static class XmlImage implements Serializable {
+        private static final long serialVersionUID = -5295892258858739320L;
+
+        @XmlElement(name = "MediaId")
+        private String mediaId;
+    }
 }

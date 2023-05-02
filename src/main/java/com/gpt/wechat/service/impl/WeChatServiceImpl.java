@@ -33,14 +33,13 @@ import com.zx.utils.util.RetryMonitor;
 import com.zx.utils.util.StringUtil;
 import com.zx.utils.util.XmlUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -189,31 +188,19 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
                 } catch (Exception e) {
                 }
             }
+            weatherData.getCity().setBold(true);
+            weatherData.getTextDay().setColor("#FF0000");
+            weatherData.getTextNight().setColor("#FF0000");
         } catch (Exception e) {
             // 忽略
         }
-        weatherData.getCity().setBold(true);
-        weatherData.getTextDay().setColor("#FF0000");
-        weatherData.getTextNight().setColor("#FF0000");
         return weatherData;
     }
 
     @Override
-    @LogAround
-    @Transactional(isolation = Isolation.SERIALIZABLE, rollbackFor = Exception.class)
-    public void eventArrived(String signature, String timestamp, String nonce, String echostr,
-                             String encryptType, String msgSignature, String openid, String receivedBody) {
-        String realXmlString = receivedBody;
-        try {
-            // 当是加密模式，需要解密，测试账号需要注释掉
-            if (StringUtil.isNotEmpty(token) && StringUtil.isNotEmpty(encodingAesKey)) {
-                WXBizMsgCrypt pc = new WXBizMsgCrypt(token, encodingAesKey, appId);
-                realXmlString = pc.DecryptMsg(msgSignature, timestamp, nonce, receivedBody);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        WechatXmlBO wechatXmlBO = XmlUtils.xmlToJavaBean(realXmlString, WechatXmlBO.class);
+    @Transactional(rollbackFor = Exception.class)
+    public void eventArrived(WechatXmlBO wechatXmlBO) {
+        String openid = wechatXmlBO.getFromUserName();
         String msgType = wechatXmlBO.getMsgType();
         String content = wechatXmlBO.getContent();
         String longitude = wechatXmlBO.getLongitude();
@@ -261,8 +248,9 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
                 }
                 ChatTopicEntity chatTopicEntity = chatTopicService.findByAttr("topicCode", topicCode).get(0);
                 userEntity.setTopicId(chatTopicEntity.getId());
-                weChatSendMsgBO.setMsgType(WechatMsgTypeEnum.IMAGE_MESSAGE.getMsgType());
-                weChatSendMsgBO.setImage(new WeChatSendMsgBO.Image(mediaId));
+                weChatSendMsgBO.setMsgType(WechatMsgTypeEnum.TEXT_MESSAGE.getMsgType());
+                answer = chatGptService.chatWithGpt(openid, chatTopicEntity, content);
+                weChatSendMsgBO.setText(new WeChatSendMsgBO.Text(answer));
             }
 
             if (StringUtil.isNotEmpty(longitude) && StringUtil.isNotEmpty(latitude)) {
@@ -300,6 +288,50 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
                 retryMonitor.registryRetry(() -> sendMessage(weChatSendMsgBO));
             }
         });
+    }
+
+    @Override
+    public WechatXmlBO getWechatXmlBO(String timestamp, String nonce, String msgSignature, String receivedBody) {
+        String realXmlString = receivedBody;
+        try {
+            // 当是加密模式，需要解密，测试账号需要注释掉
+            if (StringUtil.isNotEmpty(token) && StringUtil.isNotEmpty(encodingAesKey)) {
+                WXBizMsgCrypt pc = new WXBizMsgCrypt(token, encodingAesKey, appId);
+                realXmlString = pc.DecryptMsg(msgSignature, timestamp, nonce, receivedBody);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        WechatXmlBO wechatXmlBO = XmlUtils.xmlToJavaBean(realXmlString, WechatXmlBO.class);
+        log.info("收到消息：{}", JSON.toJSONString(wechatXmlBO));
+        return wechatXmlBO;
+    }
+
+    @Override
+    @LogAround
+    public String replayImageMessage(WechatXmlBO wechatXmlBO, String msgSignature, String timestamp, String nonce, String receivedBody) {
+        WechatXmlBO responseXml = WechatXmlBO.builder()
+                .fromUserName(appendCdata(wechatXmlBO.getToUserName()))
+                .toUserName(appendCdata(wechatXmlBO.getFromUserName()))
+                .createTime(wechatXmlBO.getCreateTime())
+                .msgType(appendCdata(WechatMsgTypeEnum.IMAGE_MESSAGE.getMsgType()))
+                .image(new WechatXmlBO.XmlImage(appendCdata(mediaId)))
+                .build();
+        String xmlString = XmlUtils.javaBeanToXmlString(responseXml);
+        // 当是加密模式，需要解密，测试账号需要注释掉
+        if (StringUtil.isNotEmpty(token) && StringUtil.isNotEmpty(encodingAesKey)) {
+            try {
+                WXBizMsgCrypt pc = new WXBizMsgCrypt(token, encodingAesKey, appId);
+                xmlString = pc.EncryptMsg(xmlString, timestamp, nonce);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return xmlString;
+    }
+
+    private String appendCdata(String str) {
+        return "<![CDATA[" + str + "]]>";
     }
 
     @Override
