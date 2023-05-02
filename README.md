@@ -15,6 +15,7 @@
 申请地址：https://mp.weixin.qq.com/
 
 申请之后需要在公众号的基本配置中进行一些配置
+
 ![img_1.png](src/main/resources/images/img_1.png)
 
 无脑配就行，主要是服务器地址填http://你的域名/v1/gpt/wechat/event
