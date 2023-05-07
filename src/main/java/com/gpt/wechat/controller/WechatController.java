@@ -60,6 +60,7 @@ public class WechatController {
      * @return
      */
     @PostMapping("/event")
+    @LogAround
     public String event(@RequestParam(value = "signature", required = false) String signature,
                         @RequestParam(value = "timestamp", required = false) String timestamp,
                         @RequestParam(value = "nonce", required = false) String nonce,

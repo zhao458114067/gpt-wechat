@@ -20,6 +20,7 @@ import com.gpt.wechat.service.UserService;
 import com.gpt.wechat.service.WeChatService;
 import com.gpt.wechat.service.WeatherService;
 import com.gpt.wechat.service.bo.CreateMenuBO;
+import com.gpt.wechat.service.bo.GetSubscribeAccessBO;
 import com.gpt.wechat.service.bo.QueryTokenBO;
 import com.gpt.wechat.service.bo.WeChatSendMsgBO;
 import com.gpt.wechat.service.bo.WeatherPredictionResponse;
@@ -28,7 +29,6 @@ import com.gpt.wechat.service.bo.WeatherWarningResponse;
 import com.gpt.wechat.service.bo.WechatXmlBO;
 import com.gpt.wechat.wechat.WXBizMsgCrypt;
 import com.zx.utils.util.HttpClientUtil;
-import com.zx.utils.util.ReflectUtil;
 import com.zx.utils.util.RetryMonitor;
 import com.zx.utils.util.StringUtil;
 import com.zx.utils.util.XmlUtils;
@@ -43,10 +43,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -93,7 +89,7 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     @Value("${we-chat.media-id:''}")
     private String mediaId;
 
-    @Value("${we-chat.template.prediction-id}")
+    @Value("${we-chat.subscribe-message.template.prediction-id}")
     private String predictionTemplateId;
 
     @Value("${we-chat.template.warning-id}")
@@ -138,7 +134,7 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     public String sendWeatherTemplateMessage(WeatherPredictionResponse.DailyWeather dailyWeather,
                                              WeatherWarningResponse.WeatherWarning warning,
                                              UserEntity userEntity) {
-        WeatherTemplateMessageDTO.WeatherData weatherData = buildWeatherRequestData(dailyWeather, warning);
+        WeatherTemplateMessageDTO.WeatherData weatherData = WeatherServiceImpl.buildWeatherRequestData(dailyWeather, warning);
         WeatherTemplateMessageDTO weatherTemplateMessageDTO = WeatherTemplateMessageDTO.builder()
                 .page("index")
                 .templateId(dailyWeather != null ? predictionTemplateId : warningTemplateId)
@@ -148,8 +144,19 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
 
         JSONObject json = (JSONObject) JSONObject.toJSON(weatherTemplateMessageDTO);
         log.info("sendWeatherTemplateMessage.request:{}", json);
-        String response = HttpClientUtil.post(null, Constants.SEND_TEMPLATE_REQUEST_URL + ACCESS_TOKEN, json);
-        log.info("sendWeatherTemplateMessage.response:{}", response);
+
+        String response = "";
+        if (dailyWeather != null) {
+            response = HttpClientUtil.post(null, Constants.SUBSCRIBE_MESSAGE_URL + ACCESS_TOKEN, json);
+        } else {
+            response = HttpClientUtil.post(null, Constants.SEND_TEMPLATE_REQUEST_URL + ACCESS_TOKEN, json);
+        }
+        JSONObject jsonObject = JSON.parseObject(response);
+        log.info("sendWeatherTemplateMessage.response:{}", jsonObject);
+        if (!Constants.SEND_SUCCESS_CODE.equals(jsonObject.getInteger("errcode"))) {
+            throw new RuntimeException(jsonObject.get("errmsg").toString());
+        }
+
         return response;
     }
 
@@ -157,51 +164,6 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
     public String createMenu(CreateMenuBO createMenuBO) {
         JSONObject json = (JSONObject) JSON.toJSON(createMenuBO);
         return HttpClientUtil.post(null, Constants.CREATE_MENU_URL + ACCESS_TOKEN, json);
-    }
-
-    /**
-     * 构建请求参数
-     *
-     * @param dailyWeather
-     * @param queryWarning
-     * @return
-     */
-    private static WeatherTemplateMessageDTO.WeatherData buildWeatherRequestData(WeatherPredictionResponse.DailyWeather dailyWeather,
-                                                                                 WeatherWarningResponse.WeatherWarning queryWarning) {
-        WeatherTemplateMessageDTO.WeatherData weatherData = new WeatherTemplateMessageDTO.WeatherData();
-
-        // 对象映射，找不到直接跳过
-        try {
-            Map<String, Object> fieldsValue = new HashMap<>(16);
-            if (dailyWeather != null) {
-                fieldsValue.putAll(ReflectUtil.getFieldsValue(dailyWeather));
-            }
-            if (queryWarning != null) {
-                fieldsValue.putAll(ReflectUtil.getFieldsValue(queryWarning));
-            }
-            for (Map.Entry<String, Object> stringObjectEntry : fieldsValue.entrySet()) {
-                try {
-                    WeatherTemplateMessageDTO.Item item = new WeatherTemplateMessageDTO.Item();
-                    String fieldName = stringObjectEntry.getKey();
-                    String value = stringObjectEntry.getValue().toString();
-                    if (fieldName.toLowerCase().contains("time")) {
-                        ZonedDateTime parse = ZonedDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mmXXX"));
-                        value = parse.toLocalDateTime().toString();
-                    }
-                    item.setValue(value);
-                    item.setColor("#173177");
-                    item.setBold(false);
-                    ReflectUtil.executeMethod(weatherData, "set" + StringUtil.firstCharToUpperCase(fieldName), item);
-                } catch (Exception e) {
-                }
-            }
-            weatherData.getCity().setBold(true);
-            weatherData.getTextDay().setColor("#FF0000");
-            weatherData.getTextNight().setColor("#FF0000");
-        } catch (Exception e) {
-            // 忽略
-        }
-        return weatherData;
     }
 
     @Override
@@ -241,7 +203,17 @@ public class WeChatServiceImpl implements WeChatService, ApplicationRunner {
             if (WechatEventEnum.SUBSCRIBE_EVENT.getMsgType().equals(event)) {
                 // 关注
                 weChatSendMsgBO.setMsgType(WechatMsgTypeEnum.TEXT_MESSAGE.getMsgType());
-                weChatSendMsgBO.setText(new WeChatSendMsgBO.Text("感谢关注，请允许获取地理位置以便订阅天气提醒！"));
+                weChatSendMsgBO.setText(new WeChatSendMsgBO.Text("老板大大，欢迎关注您的专属小秘\n" +
+                        "另外，请允许获取地理位置以便订阅天气预警服务哦"));
+//                GetSubscribeAccessBO getConfirm = GetSubscribeAccessBO.builder()
+//                        .action("get_confirm")
+//                        .appid(appId)
+//                        .scene("10000")
+//                        .redirectUrl("")
+//                        .reserved("test#wechat_redirect").build();
+//
+//                String post = HttpClientUtil.post(null, Constants.GET_SUBSCRIBE_ACCESS_URL, (JSONObject) JSON.toJSON(getConfirm));
+//                log.info("GET_SUBSCRIBE_ACCESS_URL.post:{}", post);
             } else if (WechatEventEnum.UNSUBSCRIBE_EVENT.getMsgType().equals(event)) {
                 // 取关
                 userEntity.setValid(Constants.VALID_FALSE);

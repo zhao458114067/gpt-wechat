@@ -11,8 +11,6 @@ spring:
       ddl-auto: update
     database-platform: org.hibernate.dialect.SQLiteDialect
     show-sql: false
-  profiles:
-    active: prod
   swagger:
     enabled: true
     title: 微信GPT
@@ -25,30 +23,35 @@ spring:
       filter-plugin: true
       username: zhao458114067
       password: zhaoxujiayou
-
-# 需要使用天气预报功能申请 https://console.qweather.com/#/apps
-console:
-  weather:
-    key: e97ee44a76444axxxxxxxxxxxxxxxxxx
+  profiles:
+    active: prod
 
 we-chat:
-  # 微信官方提供
-  secret: 44eexxxxxxxxxxxxxxxxxxxxxsxxxxxxx
-  app-id: wx04xxxxxxxxxxxxxx
+  # 微信测试公众号，官方提供
+  secret: e63fae26xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  app-id: wx79dfxxxxxxxxxxxx
   # 自己设置的token
-  token: xxxxxxxx
-  encoding-aes-key: WI5SRgQ3aQNMKUQu6ApoN72kUr1Kkxxxxxxxxxxxxxx
+  token: zhaoxujiayou
+  encoding-aes-key: ysUobI3Wgxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   # 自己的素材
-  media-id: -FyZZCSDIXaWxZizfx7DNgNe0O3-K_xxxxxxxxxxxxxxxxxxxxxsxxxxxxx
+  media-id: JZs7V6OoFigpG4ZxBZ6jNF-WVnz2fcq4mxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  # 订阅消息
+  subscribe-message:
+    template:
+      prediction-id: poz--THhGi0VrnXKxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  # 模板消息
   template:
-    prediction-id: rkj79W0ZhMSGznc4xxxxxxxxxxxxxxxxxxxxxsxxxxxxx
-    warning-id: IE4tMXqx4aquIu1xxxxxxxxxxxxxxxxxxxxxsxxxxxxx
+    warning-id: sghchOqWytTjRBSDxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# 天气key
+console:
+  weather:
+    key: e97eexxxxxxxxxxxxxxxxxxxxxxxxxxxx
 chat-gpt:
   api:
-    # chatGpt官网申请的key
+    # chatGpt官网申请的key，可以是多个
     keys:
-     - sk-MgduMlIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-     - sk-cIBxidlxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-     - sk-106wM44xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-     - sk-KSYg4dxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-     - sk-WRwDaJxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - sk-MgduMlIciGiFxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - sk-cIBxidl6RnrQxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - sk-106wM44zegokxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - sk-KSYg4dxQH0oxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - sk-WRwDaJ463DZxxxxxxxxxxxxxxxxxxxxxxxxxxxx

@@ -29,6 +29,16 @@ public interface Constants {
     String SEND_MESSAGE_URL = "https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=";
 
     /**
+     * 订阅申请url
+     */
+    String GET_SUBSCRIBE_ACCESS_URL = "https://mp.weixin.qq.com/mp/subscribemsg?";
+
+    /**
+     * 公众号发送订阅消息url
+     */
+    String SUBSCRIBE_MESSAGE_URL = "https://api.weixin.qq.com/cgi-bin/message/subscribe/bizsend?access_token=";
+
+    /**
      * 公众号创建自定义菜单
      */
     String CREATE_DESIGN_MENU = "https://api.weixin.qq.com/cgi-bin/menu/create?access_token=";
@@ -53,7 +63,7 @@ public interface Constants {
     /**
      * 公众号请求成功
      */
-    String SEND_SUCCESS_CODE = "0";
+    Integer SEND_SUCCESS_CODE = 0;
 
     String ERR_TOKEN_INVALID2 = "42001";
 
