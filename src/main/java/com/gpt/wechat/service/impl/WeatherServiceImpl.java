@@ -77,15 +77,12 @@ public class WeatherServiceImpl implements WeatherService {
         if (StringUtil.isNotEmpty(weatherApiKey)) {
             List<UserEntity> userEntities = userService.queryAllUserInfoList();
             for (UserEntity userEntity : userEntities) {
-                CompletableFuture.runAsync(() -> {
-                    retryMonitor.registryRetry(() -> pushWeatherTemplateMessageToUser(isPrediction, userEntity));
-                });
+                retryMonitor.registryRetry(() -> pushWeatherTemplateMessageToUser(isPrediction, userEntity));
             }
         }
     }
 
     @Override
-    @Transactional(rollbackFor = Throwable.class)
     public String pushWeatherTemplateMessageToUser(boolean isPrediction, UserEntity userEntity) {
         String longitude = userEntity.getLongitude();
         String latitude = userEntity.getLatitude();
@@ -144,7 +141,7 @@ public class WeatherServiceImpl implements WeatherService {
      * @return
      */
     public static WeatherTemplateMessageDTO.WeatherData buildWeatherRequestData(WeatherPredictionResponse.DailyWeather dailyWeather,
-                                                                                 WeatherWarningResponse.WeatherWarning queryWarning) {
+                                                                                WeatherWarningResponse.WeatherWarning queryWarning) {
         WeatherTemplateMessageDTO.WeatherData weatherData = new WeatherTemplateMessageDTO.WeatherData();
 
         // 对象映射，找不到直接跳过
