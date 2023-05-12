@@ -103,7 +103,7 @@ public class ChatGptServiceImpl implements ChatGptService, ApplicationRunner {
                 .model(ChatCompletion.Model.GPT_3_5_TURBO_0301.getName())
                 .messages(messageList)
                 .maxTokens(Constants.MAX_TOKENS)
-                .temperature(1.2)
+                .temperature(1)
                 .topP(1)
                 .n(1)
                 .frequencyPenalty(0)
